@@ -141,10 +141,12 @@ public final class EurekaHttpClients {
                 true
         );
 
+        // 获取可用的server url等
         List<AwsEndpoint> initialValue = delegateResolver.getClusterEndpoints();
         if (initialValue.isEmpty()) {
             String msg = "Initial resolution of Eureka server endpoints failed. Check ConfigClusterResolver logs for more info";
             logger.error(msg);
+            // 没有可用,throw exception
             failFastOnInitCheck(clientConfig, msg);
         }
 

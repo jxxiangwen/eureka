@@ -40,6 +40,7 @@ public class DefaultEndpoint implements EurekaEndpoint {
             this.networkAddress = url.getHost();
             this.port = url.getPort();
             this.isSecure = "https".equals(url.getProtocol());
+            // 端口后面的相对地址
             this.relativeUri = url.getPath();
         } catch (Exception e) {
             throw new IllegalArgumentException("Malformed serviceUrl: " + serviceUrl);

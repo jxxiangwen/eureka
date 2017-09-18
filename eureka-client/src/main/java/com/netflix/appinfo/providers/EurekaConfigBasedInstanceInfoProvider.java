@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
  * @author elandau
  *
  */
+// 这里会生成实例,eureka会将实例注册到注册中心
 @Singleton
 public class EurekaConfigBasedInstanceInfoProvider implements Provider<InstanceInfo> {
     private static final Logger LOG = LoggerFactory.getLogger(EurekaConfigBasedInstanceInfoProvider.class);
@@ -42,6 +43,7 @@ public class EurekaConfigBasedInstanceInfoProvider implements Provider<InstanceI
         this.config = config;
     }
 
+    // 生成注册实例
     @Override
     public synchronized InstanceInfo get() {
         if (instanceInfo == null) {

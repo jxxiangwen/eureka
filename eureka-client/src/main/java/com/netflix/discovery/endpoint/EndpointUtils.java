@@ -172,9 +172,13 @@ public class EndpointUtils {
      * @param preferSameZone true if we have to prefer the same zone as the client, false otherwise
      * @return The list of all eureka service urls for the eureka client to talk to
      */
+    // 从配置中拿到server url
     public static List<String> getServiceUrlsFromConfig(EurekaClientConfig clientConfig, String instanceZone, boolean preferSameZone) {
         List<String> orderedUrls = new ArrayList<String>();
+        // Region,zone是aws上的概念
+        // 会返回默认的us-east-1
         String region = getRegion(clientConfig);
+        // 返回defaultZone
         String[] availZones = clientConfig.getAvailabilityZones(clientConfig.getRegion());
         if (availZones == null || availZones.length == 0) {
             availZones = new String[1];
@@ -183,6 +187,7 @@ public class EndpointUtils {
         logger.debug("The availability zone for the given region {} are {}", region, Arrays.toString(availZones));
         int myZoneOffset = getZoneOffset(instanceZone, preferSameZone, availZones);
 
+        // 获取server url ,可以通过lion获取后去设置这个值从而获取server url
         List<String> serviceUrls = clientConfig.getEurekaServerServiceUrls(availZones[myZoneOffset]);
         if (serviceUrls != null) {
             orderedUrls.addAll(serviceUrls);

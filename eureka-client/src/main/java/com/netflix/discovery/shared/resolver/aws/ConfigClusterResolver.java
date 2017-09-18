@@ -19,7 +19,9 @@ import java.util.Map;
 public class ConfigClusterResolver implements ClusterResolver<AwsEndpoint> {
     private static final Logger logger = LoggerFactory.getLogger(ConfigClusterResolver.class);
 
+    // 客户端配置,比如续租,心跳发送时间等等
     private final EurekaClientConfig clientConfig;
+    // 有一些ip和port信息
     private final InstanceInfo myInstanceInfo;
 
     public ConfigClusterResolver(EurekaClientConfig clientConfig, InstanceInfo myInstanceInfo) {
@@ -32,6 +34,7 @@ public class ConfigClusterResolver implements ClusterResolver<AwsEndpoint> {
         return clientConfig.getRegion();
     }
 
+    // 获取可用的server url转化为aws终端
     @Override
     public List<AwsEndpoint> getClusterEndpoints() {
         if (clientConfig.shouldUseDnsForFetchingServiceUrls()) {
@@ -72,10 +75,13 @@ public class ConfigClusterResolver implements ClusterResolver<AwsEndpoint> {
         String[] availZones = clientConfig.getAvailabilityZones(clientConfig.getRegion());
         String myZone = InstanceInfo.getZone(availZones, myInstanceInfo);
 
+        // 这边会返回zone对应的server url
+        // 我们只会有defaultZone和相应的list
         Map<String, List<String>> serviceUrls = EndpointUtils
                 .getServiceUrlsMapFromConfig(clientConfig, myZone, clientConfig.shouldPreferSameZoneEureka());
 
         List<AwsEndpoint> endpoints = new ArrayList<>();
+        // 将可用的server加入endpoints返回
         for (String zone : serviceUrls.keySet()) {
             for (String url : serviceUrls.get(zone)) {
                 try {

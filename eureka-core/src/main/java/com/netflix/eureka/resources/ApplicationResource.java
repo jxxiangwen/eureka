@@ -139,6 +139,7 @@ public class ApplicationResource {
      *            a header parameter containing information whether this is
      *            replicated from other nodes.
      */
+    // 注册实例
     @POST
     @Consumes({"application/json", "application/xml"})
     public Response addInstance(InstanceInfo info,
@@ -182,6 +183,7 @@ public class ApplicationResource {
             }
         }
 
+        // 注册
         registry.register(info, "true".equals(isReplication));
         return Response.status(204).build();  // 204 to be backwards compatible
     }
