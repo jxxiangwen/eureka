@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
  * @author Karthik Ranganathan, Greg Kim
  *
  */
+// 心跳检测实例状态
 @Path("/healthcheck")
 public class HealthCheckResource {
     private static final Logger s_logger = LoggerFactory

@@ -29,7 +29,7 @@ import static com.netflix.appinfo.PropertyBasedInstanceConfigConstants.*;
 
 /**
  * A properties based {@link InstanceInfo} configuration.
- *
+ * <p>
  * <p>
  * The information required for registration with eureka server is provided in a
  * configuration file.The configuration file is searched for in the classpath
@@ -38,7 +38,7 @@ import static com.netflix.appinfo.PropertyBasedInstanceConfigConstants.*;
  * <em>eureka-client.properties</em> is assumed as the default.The properties
  * that are looked up uses the <em>namespace</em> passed on to this class.
  * </p>
- *
+ * <p>
  * <p>
  * If the <em>eureka.environment</em> property is specified, additionally
  * <em>eureka-client-<eureka.environment>.properties</em> is loaded in addition
@@ -46,11 +46,15 @@ import static com.netflix.appinfo.PropertyBasedInstanceConfigConstants.*;
  * </p>
  *
  * @author Karthik Ranganathan
- *
  */
+// AbstractInstanceConfig提供了一些默认配置
+// 本类实现了一些AbstractInstanceConfig没有实现的方法
 public abstract class PropertiesInstanceConfig extends AbstractInstanceConfig implements EurekaInstanceConfig {
 
     protected final String namespace;
+    /**
+     * 配置文件对象
+     */
     protected final DynamicPropertyFactory configInstance;
     private String appGrpNameFromEnv;
 
@@ -74,9 +78,12 @@ public abstract class PropertiesInstanceConfig extends AbstractInstanceConfig im
                 ? namespace
                 : namespace + ".";
 
+        // 组名称,没配置为unknown
         appGrpNameFromEnv = ConfigurationManager.getConfigInstance()
                 .getString(FALLBACK_APP_GROUP_KEY, Values.UNKNOWN_APPLICATION);
 
+        // 从eureka.client.props 配置的文件从获取property,
+        // 如果没有配置eureka.client.props,使用CONFIG_FILE_NAME
         this.configInstance = Archaius1Utils.initConfig(CommonConstants.CONFIG_FILE_NAME);
     }
 
@@ -108,7 +115,7 @@ public abstract class PropertiesInstanceConfig extends AbstractInstanceConfig im
      */
     @Override
     public int getSecurePort() {
-        return configInstance.getIntProperty(namespace + SECURE_PORT_KEY, super.getSecurePort()) .get();
+        return configInstance.getIntProperty(namespace + SECURE_PORT_KEY, super.getSecurePort()).get();
     }
 
     /*
@@ -201,7 +208,7 @@ public abstract class PropertiesInstanceConfig extends AbstractInstanceConfig im
     /**
      * Gets the metadata map associated with the instance. The properties that
      * will be looked up for this will be <code>namespace + ".metadata"</code>.
-     *
+     * <p>
      * <p>
      * For instance, if the given namespace is <code>eureka.appinfo</code>, the
      * metadata keys are searched under the namespace

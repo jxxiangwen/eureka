@@ -50,5 +50,7 @@ public interface HealthCheckCallback {
      *
      * @return true if the call back returns healthy, false otherwise.
      */
+    // 如果返回false,eureka会将当前实例变为down状态
+    // 如果返回true,eureka会将当前实例变为up状态
     boolean isHealthy();
 }

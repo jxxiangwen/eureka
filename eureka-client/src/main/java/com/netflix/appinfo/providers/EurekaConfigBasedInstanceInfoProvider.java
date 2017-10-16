@@ -19,14 +19,14 @@ import org.slf4j.LoggerFactory;
 /**
  * InstanceInfo provider that constructs the InstanceInfo this this instance using
  * EurekaInstanceConfig.
- *
+ * <p>
  * This provider is @Singleton scope as it provides the InstanceInfo for both DiscoveryClient
  * and ApplicationInfoManager, and need to provide the same InstanceInfo to both.
  *
  * @author elandau
- *
  */
 // 这里会生成实例,eureka会将实例注册到注册中心
+// 基于 EurekaInstanceConfig 创建 InstanceInfo 的工厂
 @Singleton
 public class EurekaConfigBasedInstanceInfoProvider implements Provider<InstanceInfo> {
     private static final Logger LOG = LoggerFactory.getLogger(EurekaConfigBasedInstanceInfoProvider.class);
@@ -43,15 +43,17 @@ public class EurekaConfigBasedInstanceInfoProvider implements Provider<InstanceI
         this.config = config;
     }
 
-    // 生成注册实例
+    // 生成注册实例,使用EurekaInstanceConfig
     @Override
     public synchronized InstanceInfo get() {
         if (instanceInfo == null) {
+            // 设置心跳时间和过期时间
             // Build the lease information to be passed to the server based on config
             LeaseInfo.Builder leaseInfoBuilder = LeaseInfo.Builder.newBuilder()
                     .setRenewalIntervalInSecs(config.getLeaseRenewalIntervalInSeconds())
                     .setDurationInSecs(config.getLeaseExpirationDurationInSeconds());
 
+            // 创建 VIP地址解析器
             if (vipAddressResolver == null) {
                 vipAddressResolver = new Archaius1VipAddressResolver();
             }
@@ -59,6 +61,7 @@ public class EurekaConfigBasedInstanceInfoProvider implements Provider<InstanceI
             // Builder the instance information to be registered with eureka server
             InstanceInfo.Builder builder = InstanceInfo.Builder.newBuilder(vipAddressResolver);
 
+            // 设置instanceId
             // set the appropriate id for the InstanceInfo, falling back to datacenter Id if applicable, else hostname
             String instanceId = config.getInstanceId();
             DataCenterInfo dataCenterInfo = config.getDataCenterInfo();
@@ -70,6 +73,7 @@ public class EurekaConfigBasedInstanceInfoProvider implements Provider<InstanceI
                 }
             }
 
+            // 设置默认地址
             String defaultAddress;
             if (config instanceof RefreshableInstanceConfig) {
                 // Refresh AWS data center info, and return up to date address
@@ -105,13 +109,14 @@ public class EurekaConfigBasedInstanceInfoProvider implements Provider<InstanceI
 
             // Start off with the STARTING state to avoid traffic
             if (!config.isInstanceEnabledOnit()) {
+                // 启动之后不立即接收流量
                 InstanceStatus initialStatus = InstanceStatus.STARTING;
                 LOG.info("Setting initial instance status as: " + initialStatus);
                 builder.setStatus(initialStatus);
             } else {
                 LOG.info("Setting initial instance status as: {}. This may be too early for the instance to advertise "
-                         + "itself as available. You would instead want to control this via a healthcheck handler.",
-                         InstanceStatus.UP);
+                                + "itself as available. You would instead want to control this via a healthcheck handler.",
+                        InstanceStatus.UP);
             }
 
             // Add any user-specific metadata information
@@ -122,6 +127,7 @@ public class EurekaConfigBasedInstanceInfoProvider implements Provider<InstanceI
             }
 
             instanceInfo = builder.build();
+            // 设置租约信息
             instanceInfo.setLeaseInfo(leaseInfoBuilder.build());
         }
         return instanceInfo;

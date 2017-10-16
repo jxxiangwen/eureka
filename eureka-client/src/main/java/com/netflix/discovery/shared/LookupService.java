@@ -26,6 +26,8 @@ import com.netflix.appinfo.InstanceInfo;
  * @param <T> for backward compatibility
 
  */
+// 提供简单单一的方式获取应用集合(com.netflix.discovery.shared.Applications)
+// 和应用实例信息集合( com.netflix.appinfo.InstanceInfo )。
 public interface LookupService<T> {
 
     /**

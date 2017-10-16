@@ -49,6 +49,7 @@ import org.slf4j.LoggerFactory;
  * @author Karthik Ranganathan, Greg Kim
  *
  */
+// 相当于Spring MVC中的控制器，是服务的注册、查询功能的代码入口点
 @Produces({"application/xml", "application/json"})
 public class ApplicationResource {
     private static final Logger logger = LoggerFactory.getLogger(ApplicationResource.class);
@@ -82,6 +83,7 @@ public class ApplicationResource {
      * @return the response containing information about a particular
      *         application.
      */
+    // 获取应用
     @GET
     public Response getApplication(@PathParam("version") String version,
                                    @HeaderParam("Accept") final String acceptHeader,
@@ -106,6 +108,9 @@ public class ApplicationResource {
                 EurekaAccept.fromString(eurekaAccept)
         );
 
+        // Eureka对HTTP响应做了缓存
+        // 其get()方法首先会去缓存中查询数据，如果没有则生成数据返回（即真正去查询注册列表），
+        // 且缓存的有效时间为30s。也就是说，客户端拿到Eureka的响应并不一定是即时的，大部分时候只是缓存信息。
         String payLoad = responseCache.get(cacheKey);
 
         if (payLoad != null) {
@@ -124,6 +129,7 @@ public class ApplicationResource {
      *            the unique identifier of the instance.
      * @return information about a particular instance.
      */
+    // 获取一个特殊的实例
     @Path("{id}")
     public InstanceResource getInstanceInfo(@PathParam("id") String id) {
         return new InstanceResource(this, id, serverConfig, registry);
@@ -143,6 +149,8 @@ public class ApplicationResource {
     @POST
     @Consumes({"application/json", "application/xml"})
     public Response addInstance(InstanceInfo info,
+                                // 是否需要复制,当是client时是需要复制的
+                                // 如果是server复制给peerNode,不需要复制,否则会死循环
                                 @HeaderParam(PeerEurekaNode.HEADER_REPLICATION) String isReplication) {
         logger.debug("Registering instance {} (replication={})", info.getId(), isReplication);
         // validate that the instanceinfo contains all the necessary required fields

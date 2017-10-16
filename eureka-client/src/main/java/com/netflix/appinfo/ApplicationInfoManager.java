@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 /**
  * The class that initializes information required for registration with
  * <tt>Eureka Server</tt> and to be discovered by other components.
- *
+ * <p>
  * <p>
  * The information required for registration is provided by the user by passing
  * the configuration defined by the contract in {@link EurekaInstanceConfig}
@@ -40,10 +40,12 @@ import org.slf4j.LoggerFactory;
  * {@link AbstractInstanceConfig}.
  * </p>
  *
- *
  * @author Karthik Ranganathan, Greg Kim
- *
  */
+// 这个类初始化需要注册到eureka上的信息和被其他服务发现的信息
+// 这些信息可以通过EurekaInstanceConfig类来获得
+// aws也可以使用CloudInstanceConfig来获得
+// 非aws应用可以使用MyDataCenterInstanceConfig或AbstractInstanceConfig
 @Singleton
 public class ApplicationInfoManager {
     private static final Logger logger = LoggerFactory.getLogger(ApplicationInfoManager.class);
@@ -57,10 +59,18 @@ public class ApplicationInfoManager {
 
     private static ApplicationInfoManager instance = new ApplicationInfoManager(null, null, null);
 
+    /**
+     * 状态变更监听器
+     */
     protected final Map<String, StatusChangeListener> listeners;
+    /**
+     * 应用实例状态匹配
+     */
+    // 默认情况下，使用 NO_OP_MAPPER 。一般情况下，不需要关注
     private final InstanceStatusMapper instanceStatusMapper;
-
+    // 注册实例
     private InstanceInfo instanceInfo;
+    // 配置信息
     private EurekaInstanceConfig config;
 
     public static class OptionalArgs {
@@ -84,6 +94,7 @@ public class ApplicationInfoManager {
     public ApplicationInfoManager(EurekaInstanceConfig config, InstanceInfo instanceInfo, OptionalArgs optionalArgs) {
         this.config = config;
         this.instanceInfo = instanceInfo;
+        // 状态改变监听器
         this.listeners = new ConcurrentHashMap<String, StatusChangeListener>();
         if (optionalArgs != null) {
             this.instanceStatusMapper = optionalArgs.getInstanceStatusMapper();
@@ -145,7 +156,7 @@ public class ApplicationInfoManager {
      * Register user-specific instance meta data. Application can send any other
      * additional meta data that need to be accessed for other reasons.The data
      * will be periodically sent to the eureka server.
-     *
+     * <p>
      * Please Note that metadata added via this method is not guaranteed to be submitted
      * to the eureka servers upon initial registration, and may be submitted as an update
      * at a subsequent time. If you want guaranteed metadata for initial registration,
@@ -194,7 +205,7 @@ public class ApplicationInfoManager {
      * Refetches the hostname to check if it has changed. If it has, the entire
      * <code>DataCenterInfo</code> is refetched and passed on to the eureka
      * server on next heartbeat.
-     *
+     * <p>
      * see {@link InstanceInfo#getHostName()} for explanation on why the hostname is used as the default address
      */
     public void refreshDataCenterInfoIfRequired() {

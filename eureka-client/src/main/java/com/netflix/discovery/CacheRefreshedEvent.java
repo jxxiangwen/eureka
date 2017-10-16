@@ -6,6 +6,7 @@ package com.netflix.discovery;
  * 
  * @author brenuart
  */
+// 缓存刷新时间
 public class CacheRefreshedEvent extends DiscoveryEvent {
     @Override
     public String toString() {

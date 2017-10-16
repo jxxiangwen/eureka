@@ -616,6 +616,9 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
      * traffic to this node.
      *
      */
+    // 如果Eureka A的peer指向了B, B的peer指向了C，那么当服务向A注册时，B中会有该服务的注册信息，
+    // 但是C中没有。也就是说，如果你希望只要向一台Eureka注册其它所有实例都能得到注册信息，
+    // 那么就必须把其它所有节点都配置到当前Eureka的peer属性中。
     private void replicateToPeers(Action action, String appName, String id,
                                   InstanceInfo info /* optional */,
                                   InstanceStatus newStatus /* optional */, boolean isReplication) {
@@ -624,6 +627,9 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
             if (isReplication) {
                 numberOfReplicationsLastMin.increment();
             }
+            // 如果这条注册信息是其它Eureka同步过的则不会再继续传播给自己的peer节点
+            // 只有收到注册的server才会同步,且同步时会将isReplication设置为false
+            // 防止重复复制,且只会复制给自己的peer
             // If it is a replication already, do not replicate again as this will create a poison replication
             if (peerEurekaNodes == Collections.EMPTY_LIST || isReplication) {
                 return;
@@ -631,6 +637,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
 
             for (final PeerEurekaNode node : peerEurekaNodes.getPeerEurekaNodes()) {
                 // If the url represents this host, do not replicate to yourself.
+                // 不要向自己发同步请求
                 if (peerEurekaNodes.isThisMyUrl(node.getServiceUrl())) {
                     continue;
                 }

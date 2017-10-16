@@ -51,6 +51,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author Karthik Ranganathan, Greg Kim
  */
+// 这个类持有需要注册到eureka上的信息
 @ProvidedBy(EurekaConfigBasedInstanceInfoProvider.class)
 @Serializer("com.netflix.discovery.converters.EntityBodyConverter")
 @XStreamAlias("instance")
@@ -319,7 +320,9 @@ public class InstanceInfo {
                     return InstanceStatus.valueOf(s.toUpperCase());
                 } catch (IllegalArgumentException e) {
                     // ignore and fall through to unknown
-                    if (logger.isDebugEnabled()) logger.debug("illegal argument supplied to InstanceStatus.valueOf: {}, defaulting to {}", s, UNKNOWN);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("illegal argument supplied to InstanceStatus.valueOf: {}, defaulting to {}", s, UNKNOWN);
+                    }
                 }
             }
             return UNKNOWN;
@@ -363,7 +366,7 @@ public class InstanceInfo {
         private static final String COLON = ":";
         private static final String HTTPS_PROTOCOL = "https://";
         private static final String HTTP_PROTOCOL = "http://";
-        private final Function<String,String> intern;
+        private final Function<String, String> intern;
 
         private static final class LazyHolder {
             private static final VipAddressResolver DEFAULT_VIP_ADDRESS_RESOLVER = new Archaius1VipAddressResolver();
@@ -377,7 +380,7 @@ public class InstanceInfo {
 
         private String namespace;
 
-        private Builder(InstanceInfo result, VipAddressResolver vipAddressResolver, Function<String,String> intern) {
+        private Builder(InstanceInfo result, VipAddressResolver vipAddressResolver, Function<String, String> intern) {
             this.vipAddressResolver = vipAddressResolver;
             this.result = result;
             this.intern = intern != null ? intern : StringCache::intern;
@@ -391,7 +394,7 @@ public class InstanceInfo {
             return new Builder(new InstanceInfo(), LazyHolder.DEFAULT_VIP_ADDRESS_RESOLVER, null);
         }
 
-        public static Builder newBuilder(Function<String,String> intern) {
+        public static Builder newBuilder(Function<String, String> intern) {
             return new Builder(new InstanceInfo(), LazyHolder.DEFAULT_VIP_ADDRESS_RESOLVER, intern);
         }
 
@@ -415,12 +418,12 @@ public class InstanceInfo {
             result.appName = intern.apply(appName.toUpperCase(Locale.ROOT));
             return this;
         }
-        
+
         public Builder setAppNameForDeser(String appName) {
             result.appName = appName;
             return this;
         }
-        
+
 
         public Builder setAppGroupName(String appGroupName) {
             if (appGroupName != null) {
@@ -430,6 +433,7 @@ public class InstanceInfo {
             }
             return this;
         }
+
         public Builder setAppGroupNameForDeser(String appGroupName) {
             result.appGroupName = appGroupName;
             return this;
@@ -572,9 +576,12 @@ public class InstanceInfo {
         public Builder setHomePageUrl(String relativeUrl, String explicitUrl) {
             String hostNameInterpolationExpression = "${" + namespace + "hostname}";
             if (explicitUrl != null) {
+                // explicitUrl必须要是http://${netflix.appinfo.hostname}:7001/形式
+                // 因此不提供explicitUrl,直接提供relativeUrl,即覆盖getHomePageUrlPath
                 result.homePageUrl = explicitUrl.replace(
                         hostNameInterpolationExpression, result.hostName);
             } else if (relativeUrl != null) {
+                //relativeUrl不为空,直接使用http://hostName:port加上relativeUrl构建
                 result.homePageUrl = HTTP_PROTOCOL + result.hostName + COLON
                         + result.port + relativeUrl;
             }
@@ -895,12 +902,12 @@ public class InstanceInfo {
     /**
      * Return the default network address to connect to this instance. Typically this would be the fully
      * qualified public hostname.
-     *
+     * <p>
      * However the user can configure the {@link EurekaInstanceConfig} to change the default value used
      * to populate this field using the {@link EurekaInstanceConfig#getDefaultAddressResolutionOrder()} property.
-     *
+     * <p>
      * If a use case need more specific hostnames or ips, please use data from {@link #getDataCenterInfo()}.
-     *
+     * <p>
      * For legacy reasons, it is difficult to introduce a new address-type field that is agnostic to hostname/ip.
      *
      * @return the default address (by default the public hostname)
@@ -931,14 +938,17 @@ public class InstanceInfo {
      */
     @JsonIgnore
     public String getId() {
+        // instanceId存在返回
         if (instanceId != null && !instanceId.isEmpty()) {
             return instanceId;
+            // dataCenterInfo实现UniqueIdentifier,返回getId
         } else if (dataCenterInfo instanceof UniqueIdentifier) {
             String uniqueId = ((UniqueIdentifier) dataCenterInfo).getId();
             if (uniqueId != null && !uniqueId.isEmpty()) {
                 return uniqueId;
             }
         }
+        // 否则返回hostname
         return hostName;
     }
 
@@ -1341,8 +1351,7 @@ public class InstanceInfo {
      * Register application specific metadata to be sent to the discovery
      * server.
      *
-     * @param runtimeMetadata
-     *            Map containing key/value pairs.
+     * @param runtimeMetadata Map containing key/value pairs.
      */
     synchronized void registerRuntimeMetadata(
             Map<String, String> runtimeMetadata) {
@@ -1356,11 +1365,11 @@ public class InstanceInfo {
      * the AWS zone of the instance, and availZones is ignored.
      *
      * @param availZones the list of available zones for non-AWS deployments
-     * @param myInfo
-     *            - The InstanceInfo object of the instance.
+     * @param myInfo     - The InstanceInfo object of the instance.
      * @return - The zone in which the particular instance belongs to.
      */
     public static String getZone(String[] availZones, InstanceInfo myInfo) {
+        // 无需关注,非aws返回default
         String instanceZone = ((availZones == null || availZones.length == 0) ? "default"
                 : availZones[0]);
         if (myInfo != null

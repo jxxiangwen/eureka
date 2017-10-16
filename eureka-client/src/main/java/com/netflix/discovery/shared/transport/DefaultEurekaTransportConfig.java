@@ -19,6 +19,7 @@ public class DefaultEurekaTransportConfig implements EurekaTransportConfig {
                 : (parentNamespace.endsWith(".")
                     ? parentNamespace + SUB_NAMESPACE
                     : parentNamespace + "." + SUB_NAMESPACE);
+        // 配置文件对象
         this.configInstance = configInstance;
     }
 

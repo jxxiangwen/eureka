@@ -28,6 +28,8 @@ import javax.inject.Singleton;
  */
 @Singleton
 @ProvidedBy(MyDataCenterInstanceConfigProvider.class)
+// PropertiesInstanceConfig已经实现了AbstractInstanceConfig需要实现的方法
+// 继承本类之后大部分非aws云已经有了默认配置
 public class MyDataCenterInstanceConfig extends PropertiesInstanceConfig implements EurekaInstanceConfig {
 
     public MyDataCenterInstanceConfig() {
