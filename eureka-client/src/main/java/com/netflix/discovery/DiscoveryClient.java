@@ -190,6 +190,7 @@ public class DiscoveryClient implements EurekaClient {
     // 应用实例信息复制器
     private InstanceInfoReplicator instanceInfoReplicator;
 
+    // 注册信息的应用实例数
     private volatile int registrySize = 0;
     // 最后成功从 Eureka-Server 拉取注册信息时间戳
     private volatile long lastSuccessfulRegistryFetchTimestamp = -1;
@@ -356,6 +357,7 @@ public class DiscoveryClient implements EurekaClient {
         this.backupRegistryProvider = backupRegistryProvider;
 
         this.urlRandomizer = new EndpointUtils.InstanceInfoBasedUrlRandomizer(instanceInfo);
+        // 初始化应用集合在本地的缓存
         localRegionApps.set(new Applications());
 
         fetchRegistryGeneration = new AtomicLong(0);
@@ -898,6 +900,9 @@ public class DiscoveryClient implements EurekaClient {
      * Shuts down Eureka Client. Also sends a deregistration request to the
      * eureka server.
      */
+    // Eureka-Client 向 Eureka-Server 发起下线应用实例。需要满足如下条件才可发起：
+    // 配置 eureka.registration.enabled = true ，应用实例开启注册开关。默认为 false 。
+    // 配置 eureka.shouldUnregisterOnShutdown = true ，应用实例开启关闭时下线开关。默认为 true 。
     @PreDestroy
     @Override
     public synchronized void shutdown() {
@@ -908,6 +913,7 @@ public class DiscoveryClient implements EurekaClient {
                 applicationInfoManager.unregisterStatusChangeListener(statusChangeListener.getId());
             }
 
+            // 取消定时任务
             cancelScheduledTasks();
 
             // If APPINFO was registered
@@ -963,6 +969,7 @@ public class DiscoveryClient implements EurekaClient {
             // applications
             Applications applications = getApplications();
 
+            // 是否禁用增量获取
             if (clientConfig.shouldDisableDelta()
                     || (!Strings.isNullOrEmpty(clientConfig.getRegistryRefreshSingleVipAddress()))
                     || forceFullRegistryFetch
@@ -977,11 +984,16 @@ public class DiscoveryClient implements EurekaClient {
                 logger.info("Registered Applications size is zero : {}",
                         (applications.getRegisteredApplications().size() == 0));
                 logger.info("Application version is -1: {}", (applications.getVersion() == -1));
+                // 全量
                 getAndStoreFullRegistry();
             } else {
+                // 增量
                 getAndUpdateDelta(applications);
             }
+            // 设置 应用集合 hashcode
+            // 该变量用于校验增量获取的注册信息和 Eureka-Server 全量的注册信息是否一致( 完整 )
             applications.setAppsHashCode(applications.getReconcileHashCode());
+            // 打印 本地缓存的注册的应用实例数量
             logTotalInstances();
         } catch (Throwable e) {
             logger.error(PREFIX + appPathIdentifier + " - was unable to refresh its cache! status = " + e.getMessage(), e);
@@ -992,9 +1004,11 @@ public class DiscoveryClient implements EurekaClient {
             }
         }
 
+        // 缓存刷新时间
         // Notify about cache refresh before updating the instance remote status
         onCacheRefreshed();
 
+        // 更新本地缓存的当前应用实例在 Eureka-Server 的状态。
         // Update remote status based on refreshed data held in the cache
         updateInstanceRemoteStatus();
 
@@ -1018,6 +1032,9 @@ public class DiscoveryClient implements EurekaClient {
             currentRemoteInstanceStatus = InstanceInfo.InstanceStatus.UNKNOWN;
         }
 
+        // 对比本地缓存和最新的的当前应用实例在 Eureka-Server 的状态，
+        // 若不同，更新本地缓存( 注意，只更新该缓存变量，不更新本地当前应用实例的状态
+        // ( instanceInfo.status ) )，触发 StatusChangeEvent 事件，事件监听器执行。
         // Notify if status changed
         if (lastRemoteInstanceStatus != currentRemoteInstanceStatus) {
             onRemoteStatusChanged(lastRemoteInstanceStatus, currentRemoteInstanceStatus);
@@ -1060,6 +1077,7 @@ public class DiscoveryClient implements EurekaClient {
 
         logger.info("Getting all instance registry info from the eureka server");
 
+        // 全量获取注册信息
         Applications apps = null;
         EurekaHttpResponse<Applications> httpResponse = clientConfig.getRegistryRefreshSingleVipAddress() == null
                 ? eurekaTransport.queryClient.getApplications(remoteRegionsRef.get())
@@ -1069,9 +1087,12 @@ public class DiscoveryClient implements EurekaClient {
         }
         logger.info("The response status is {}", httpResponse.getStatusCode());
 
+        // 设置到本地缓存
         if (apps == null) {
             logger.error("The application is null for some reason. Not storing this information");
         } else if (fetchRegistryGeneration.compareAndSet(currentUpdateGeneration, currentUpdateGeneration + 1)) {
+            // 根据配置 eureka.shouldFilterOnlyUpInstances = true ( 默认值 ：true )
+            // 过滤只保留状态为开启( UP )的应用实例，并随机打乱应用实例顺序
             localRegionApps.set(this.filterAndShuffle(apps));
             logger.debug("Got full registry with apps hashcode {}", apps.getAppsHashCode());
         } else {
@@ -1477,6 +1498,7 @@ public class DiscoveryClient implements EurekaClient {
             boolean remoteRegionsModified = false;
             // This makes sure that a dynamic change to remote regions to fetch is honored.
             String latestRemoteRegions = clientConfig.fetchRegistryForRemoteRegions();
+            // 用于动态通知改变
             if (null != latestRemoteRegions) {
                 String currentRemoteRegions = remoteRegionsToFetch.get();
                 if (!latestRemoteRegions.equals(currentRemoteRegions)) {
@@ -1500,7 +1522,9 @@ public class DiscoveryClient implements EurekaClient {
 
             boolean success = fetchRegistry(remoteRegionsModified);
             if (success) {
+                // 设置 注册信息的应用实例数
                 registrySize = localRegionApps.get().size();
+                // 设置 最后获取注册信息时间
                 lastSuccessfulRegistryFetchTimestamp = System.currentTimeMillis();
             }
 
@@ -1585,6 +1609,8 @@ public class DiscoveryClient implements EurekaClient {
      * @param apps The applications that needs to be filtered and shuffled.
      * @return The applications after the filter and the shuffle.
      */
+    // 根据配置 eureka.shouldFilterOnlyUpInstances = true ( 默认值 ：true )
+    // 过滤只保留状态为开启( UP )的应用实例，并随机打乱应用实例顺序
     private Applications filterAndShuffle(Applications apps) {
         if (apps != null) {
             if (isFetchingRemoteRegionRegistries()) {

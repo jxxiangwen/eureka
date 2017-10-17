@@ -26,7 +26,8 @@ public interface ResponseCache {
      * @param key the key for which the cached information needs to be obtained.
      * @return payload which contains information about the applications.
      */
-     String get(Key key);
+    // 获得缓存。
+    String get(Key key);
 
     /**
      * Get the compressed information about the applications.
@@ -34,5 +35,6 @@ public interface ResponseCache {
      * @param key the key for which the compressed cached information needs to be obtained.
      * @return compressed payload which contains information about the applications.
      */
+    // 获得缓存，并 GZIP
     byte[] getGZIP(Key key);
 }

@@ -49,7 +49,6 @@ import com.netflix.eureka.util.EurekaMonitors;
  * {@link com.netflix.discovery.shared.Applications}.
  *
  * @author Karthik Ranganathan, Greg Kim
- *
  */
 @Path("/{version}/apps")
 @Produces({"application/xml", "application/json"})
@@ -79,11 +78,9 @@ public class ApplicationsResource {
     /**
      * Gets information about a particular {@link com.netflix.discovery.shared.Application}.
      *
-     * @param version
-     *            the version of the request.
-     * @param appId
-     *            the unique application identifier (which is the name) of the
-     *            application.
+     * @param version the version of the request.
+     * @param appId   the unique application identifier (which is the name) of the
+     *                application.
      * @return information about a particular application.
      */
     @Path("{appId}")
@@ -97,17 +94,16 @@ public class ApplicationsResource {
     /**
      * Get information about all {@link com.netflix.discovery.shared.Applications}.
      *
-     * @param version the version of the request.
-     * @param acceptHeader the accept header to indicate whether to serve JSON or XML data.
+     * @param version        the version of the request.
+     * @param acceptHeader   the accept header to indicate whether to serve JSON or XML data.
      * @param acceptEncoding the accept header to indicate whether to serve compressed or uncompressed data.
-     * @param eurekaAccept an eureka accept extension, see {@link com.netflix.appinfo.EurekaAccept}
-     * @param uriInfo the {@link java.net.URI} information of the request made.
-     * @param regionsStr A comma separated list of remote regions from which the instances will also be returned.
-     *                   The applications returned from the remote region can be limited to the applications
-     *                   returned by {@link EurekaServerConfig#getRemoteRegionAppWhitelist(String)}
-     *
+     * @param eurekaAccept   an eureka accept extension, see {@link com.netflix.appinfo.EurekaAccept}
+     * @param uriInfo        the {@link java.net.URI} information of the request made.
+     * @param regionsStr     A comma separated list of remote regions from which the instances will also be returned.
+     *                       The applications returned from the remote region can be limited to the applications
+     *                       returned by {@link EurekaServerConfig#getRemoteRegionAppWhitelist(String)}
      * @return a response containing information about all {@link com.netflix.discovery.shared.Applications}
-     *         from the {@link AbstractInstanceRegistry}.
+     * from the {@link AbstractInstanceRegistry}.
      */
     @GET
     public Response getContainers(@PathParam("version") String version,
@@ -127,20 +123,26 @@ public class ApplicationsResource {
             EurekaMonitors.GET_ALL_WITH_REMOTE_REGIONS.increment();
         }
 
+        // 判断是否可以访问
         // Check if the server allows the access to the registry. The server can
         // restrict access if it is not
         // ready to serve traffic depending on various reasons.
+        // Eureka-Server 启动完成，但是未处于就绪( Ready )状态，不接受请求全量应用注册信息的请求，
+        // 例如，Eureka-Server 启动时，未能从其他 Eureka-Server 集群的节点获取到应用注册信息。
         if (!registry.shouldAllowAccess(isRemoteRegionRequested)) {
             return Response.status(Status.FORBIDDEN).build();
         }
+
+        // API 版本
         CurrentRequestVersion.set(Version.toEnum(version));
+        // 返回数据格式
         KeyType keyType = Key.KeyType.JSON;
         String returnMediaType = MediaType.APPLICATION_JSON;
         if (acceptHeader == null || !acceptHeader.contains(HEADER_JSON_VALUE)) {
             keyType = Key.KeyType.XML;
             returnMediaType = MediaType.APPLICATION_XML;
         }
-
+        // 响应缓存键( KEY )
         Key cacheKey = new Key(Key.EntityType.Application,
                 ResponseCacheImpl.ALL_APPS,
                 keyType, CurrentRequestVersion.get(), EurekaAccept.fromString(eurekaAccept), regions
@@ -161,7 +163,7 @@ public class ApplicationsResource {
 
     /**
      * Get information about all delta changes in {@link com.netflix.discovery.shared.Applications}.
-     *
+     * <p>
      * <p>
      * The delta changes represent the registry information change for a period
      * as configured by
@@ -171,7 +173,7 @@ public class ApplicationsResource {
      * the changes to the registry are infrequent and hence getting just the
      * delta will be much more efficient than getting the complete registry.
      * </p>
-     *
+     * <p>
      * <p>
      * Since the delta information is cached over a period of time, the requests
      * may return the same data multiple times within the window configured by
@@ -179,13 +181,13 @@ public class ApplicationsResource {
      * are expected to handle this duplicate information.
      * <p>
      *
-     * @param version the version of the request.
-     * @param acceptHeader the accept header to indicate whether to serve  JSON or XML data.
+     * @param version        the version of the request.
+     * @param acceptHeader   the accept header to indicate whether to serve  JSON or XML data.
      * @param acceptEncoding the accept header to indicate whether to serve compressed or uncompressed data.
-     * @param eurekaAccept an eureka accept extension, see {@link com.netflix.appinfo.EurekaAccept}
-     * @param uriInfo  the {@link java.net.URI} information of the request made.
+     * @param eurekaAccept   an eureka accept extension, see {@link com.netflix.appinfo.EurekaAccept}
+     * @param uriInfo        the {@link java.net.URI} information of the request made.
      * @return response containing the delta information of the
-     *         {@link AbstractInstanceRegistry}.
+     * {@link AbstractInstanceRegistry}.
      */
     @Path("delta")
     @GET

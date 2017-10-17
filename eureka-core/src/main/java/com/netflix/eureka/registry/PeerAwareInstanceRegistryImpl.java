@@ -192,6 +192,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
                            public void run() {
                                updateRenewalThreshold();
                            }
+                           // eureka.renewalThresholdUpdateIntervalMs 参数，
                        }, serverConfig.getRenewalThresholdUpdateIntervalMs(),
                 serverConfig.getRenewalThresholdUpdateIntervalMs());
     }
@@ -522,6 +523,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
      */
     private void updateRenewalThreshold() {
         try {
+            // 计算 应用实例数
             Applications apps = eurekaClient.getApplications();
             int count = 0;
             for (Application app : apps.getRegisteredApplications()) {
@@ -531,10 +533,13 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
                     }
                 }
             }
+
+            // 计算 expectedNumberOfRenewsPerMin 、 numberOfRenewsPerMinThreshold 参数
             synchronized (lock) {
                 // Update threshold only if the threshold is greater than the
                 // current expected threshold of if the self preservation is disabled.
                 if ((count * 2) > (serverConfig.getRenewalPercentThreshold() * numberOfRenewsPerMinThreshold)
+                        // 当未开启自我保护机制时，每次都进行重新计算。
                         || (!this.isSelfPreservationModeEnabled())) {
                     this.expectedNumberOfRenewsPerMin = count * 2;
                     this.numberOfRenewsPerMinThreshold = (int) ((count * 2) * serverConfig.getRenewalPercentThreshold());
