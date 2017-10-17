@@ -26,6 +26,7 @@ import java.util.List;
 /**
  * @author Tomasz Bak
  */
+// 提供 Eureka-Server 集群内注册信息的同步服务
 public interface PeerAwareInstanceRegistry extends InstanceRegistry {
 
     void init(PeerEurekaNodes peerEurekaNodes) throws Exception;

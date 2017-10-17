@@ -27,12 +27,30 @@ import org.slf4j.LoggerFactory;
  *
  * @author Karthik Ranganathan,Greg Kim
  */
+
+/**
+ * 续租每分钟次数
+ * 配合 Netflix Servo 实现监控信息采集续租每分钟次数。
+ * Eureka-Server 运维界面的显示续租每分钟次数。
+ */
 public class MeasuredRate {
     private static final Logger logger = LoggerFactory.getLogger(MeasuredRate.class);
+    /**
+     * 上一个间隔次数
+     */
     private final AtomicLong lastBucket = new AtomicLong(0);
+    /**
+     * 当前间隔次数
+     */
     private final AtomicLong currentBucket = new AtomicLong(0);
-
+    /**
+     * 间隔
+     */
     private final long sampleInterval;
+    /**
+     * 定时器,负责每个 sampleInterval 间隔重置当前次数( currentBucket )，
+     * 并将原当前次数设置到上一个次数( lastBucket )。
+     */
     private final Timer timer;
 
     private volatile boolean isActive;
@@ -74,6 +92,7 @@ public class MeasuredRate {
 
     /**
      * Returns the count in the last sample interval.
+     * 返回上一个次数
      */
     public long getCount() {
         return lastBucket.get();
@@ -81,6 +100,7 @@ public class MeasuredRate {
 
     /**
      * Increments the count in the current sample interval.
+     * 返回当前次数
      */
     public void increment() {
         currentBucket.incrementAndGet();

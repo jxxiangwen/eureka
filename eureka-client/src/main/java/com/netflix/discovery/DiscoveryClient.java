@@ -46,6 +46,7 @@ import javax.annotation.Nullable;
 import javax.annotation.PreDestroy;
 import javax.inject.Provider;
 import javax.inject.Singleton;
+import javax.ws.rs.POST;
 import javax.ws.rs.core.Response.Status;
 
 import com.netflix.appinfo.*;
@@ -110,6 +111,17 @@ import com.netflix.servo.monitor.Stopwatch;
 // 向 Eureka-Server 取消自身服务，当关闭时
 // 从 Eureka-Server 查询应用集合和应用实例信息
 // 简单来理解，对 Eureka-Server 服务的增删改查
+// Eureka-Client 向 Eureka-Server 发起注册应用实例需要符合如下条件：
+
+// 配置 eureka.registration.enabled = true，Eureka-Client 向 Eureka-Server 发起注册应用实例的开关。
+// InstanceInfo 在 Eureka-Client 和 Eureka-Server 数据不一致。
+// 每次 InstanceInfo 发生属性变化时，标记 isInstanceInfoDirty 属性为 true，
+// 表示 InstanceInfo 在 Eureka-Client 和 Eureka-Server 数据不一致，需要注册。
+// 另外，InstanceInfo 刚被创建时，在 Eureka-Server 不存在，也会被注册。
+// 当符合条件时，InstanceInfo 不会立即向 Eureka-Server 注册，而是后台线程定时注册。
+// 当 InstanceInfo 的状态( status ) 属性发生变化时，并且配置
+// eureka.shouldOnDemandUpdateStatusChange = true 时，立即向 Eureka-Server 注册。
+// 因为状态属性非常重要，一般情况下建议开启，当然默认情况也是开启的。
 @Singleton
 public class DiscoveryClient implements EurekaClient {
     private static final Logger logger = LoggerFactory.getLogger(DiscoveryClient.class);
@@ -152,7 +164,7 @@ public class DiscoveryClient implements EurekaClient {
     private final PreRegistrationHandler preRegistrationHandler;
     // 在创建 DiscoveryClient 时，localRegionApps 为空。
     // 定时任务间隔从 Eureka-Server 拉取注册应用信息到本地缓存
-     private final AtomicReference<Applications> localRegionApps = new AtomicReference<Applications>();
+    private final AtomicReference<Applications> localRegionApps = new AtomicReference<Applications>();
     private final Lock fetchRegistryUpdateLock = new ReentrantLock();
     // monotonically increasing generation counter to ensure stale threads do not reset registry to an older version
     // 拉取注册信息次数
@@ -173,8 +185,9 @@ public class DiscoveryClient implements EurekaClient {
     private final CopyOnWriteArraySet<EurekaEventListener> eventListeners = new CopyOnWriteArraySet<>();
 
     private String appPathIdentifier;
+    // 应用实例状态变更监听器
     private ApplicationInfoManager.StatusChangeListener statusChangeListener;
-
+    // 应用实例信息复制器
     private InstanceInfoReplicator instanceInfoReplicator;
 
     private volatile int registrySize = 0;
@@ -824,6 +837,9 @@ public class DiscoveryClient implements EurekaClient {
      * Register with the eureka service by making the appropriate REST call.
      */
     // 注册
+    // 调用 AbstractJerseyEurekaHttpClient#register(...) 方法，
+    // POST 请求 Eureka-Server 的 apps/${APP_NAME} 接口，参数为 InstanceInfo ，
+    // 实现注册实例信息的注册。
     boolean register() throws Throwable {
         logger.info(PREFIX + appPathIdentifier + ": registering service...");
         EurekaHttpResponse<Void> httpResponse;
@@ -1235,6 +1251,7 @@ public class DiscoveryClient implements EurekaClient {
      * Initializes all scheduled tasks.
      */
     // 一些定时任务
+    // 拉取,注册和续约
     private void initScheduledTasks() {
         //  从 Eureka-Server 拉取注册信息执行器
         if (clientConfig.shouldFetchRegistry()) {
@@ -1279,6 +1296,7 @@ public class DiscoveryClient implements EurekaClient {
                     renewalIntervalInSecs, TimeUnit.SECONDS);
 
             // 服务注册
+            // 创建 应用实例信息复制器
             // InstanceInfo replicator
             instanceInfoReplicator = new InstanceInfoReplicator(
                     this,
@@ -1286,6 +1304,7 @@ public class DiscoveryClient implements EurekaClient {
                     clientConfig.getInstanceInfoReplicationIntervalSeconds(),
                     2); // burstSize
 
+            // 创建 应用实例状态变更监听器
             statusChangeListener = new ApplicationInfoManager.StatusChangeListener() {
                 @Override
                 public String getId() {
@@ -1305,10 +1324,13 @@ public class DiscoveryClient implements EurekaClient {
                 }
             };
 
+            // 注册 应用实例状态变更监听器
             if (clientConfig.shouldOnDemandUpdateStatusChange()) {
                 applicationInfoManager.registerStatusChangeListener(statusChangeListener);
             }
 
+            // 开启 应用实例信息复制器
+            // 会进行注册
             instanceInfoReplicator.start(clientConfig.getInitialInstanceInfoReplicationIntervalSeconds());
         } else {
             logger.info("Not registering with Eureka server per configuration");
@@ -1374,10 +1396,17 @@ public class DiscoveryClient implements EurekaClient {
      * Refresh the current local instanceInfo. Note that after a valid refresh where changes are observed, the
      * isDirty flag on the instanceInfo is set to true
      */
+    // 刷新IP,租约和状态等信息
     void refreshInstanceInfo() {
+        // 刷新 数据中心信息
+        // 关注应用实例信息的 hostName 、 ipAddr 、 dataCenterInfo 属性的变化。
+        // 一般情况下，我们使用的是非 RefreshableInstanceConfig 实现的配置类
+        // ( 一般是 MyDataCenterInstanceConfig )，因为 AbstractInstanceConfig.hostInfo
+        // 是静态属性，即使本机修改了 IP 等信息，Eureka-Client 进程也不会感知到。
         applicationInfoManager.refreshDataCenterInfoIfRequired();
+        // 刷新 租约信息
         applicationInfoManager.refreshLeaseInfoIfRequired();
-
+        // 健康检查
         InstanceStatus status;
         try {
             status = getHealthCheckHandler().getStatus(instanceInfo.getStatus());
@@ -1398,6 +1427,7 @@ public class DiscoveryClient implements EurekaClient {
 
         public void run() {
             if (renew()) {
+                // 最后成功向 Eureka-Server 心跳时间戳
                 lastSuccessfulHeartbeatTimestamp = System.currentTimeMillis();
             }
         }

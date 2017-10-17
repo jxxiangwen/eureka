@@ -85,6 +85,7 @@ import org.slf4j.LoggerFactory;
  * @author Tomasz Bak
  */
 @Singleton
+// 请求限流过滤器
 public class RateLimitingFilter implements Filter {
 
     private static final Logger logger = LoggerFactory.getLogger(RateLimitingFilter.class);
@@ -129,6 +130,7 @@ public class RateLimitingFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+        // 访问目标
         Target target = getTarget(request);
         if (target == Target.Other) {
             chain.doFilter(request, response);
@@ -137,7 +139,9 @@ public class RateLimitingFilter implements Filter {
 
         HttpServletRequest httpRequest = (HttpServletRequest) request;
 
+        // 是否过载
         if (isRateLimited(httpRequest, target)) {
+            // 记录监控
             incrementStats(target);
             if (serverConfig.isRateLimiterEnabled()) {
                 ((HttpServletResponse) response).setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
@@ -177,6 +181,7 @@ public class RateLimitingFilter implements Filter {
             logger.debug("Privileged {} request", target);
             return false;
         }
+        // 是否过载
         if (isOverloaded(target)) {
             logger.debug("Overloaded {} request; discarding it", target);
             return true;

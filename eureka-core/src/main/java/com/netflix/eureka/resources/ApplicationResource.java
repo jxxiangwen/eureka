@@ -170,6 +170,7 @@ public class ApplicationResource {
             return Response.status(400).entity("Missing dataCenterInfo Name").build();
         }
 
+        // AWS 相关，跳过
         // handle cases where clients may be registering with bad DataCenterInfo with missing data
         DataCenterInfo dataCenterInfo = info.getDataCenterInfo();
         if (dataCenterInfo instanceof UniqueIdentifier) {
@@ -191,7 +192,7 @@ public class ApplicationResource {
             }
         }
 
-        // 注册
+        // 注册应用实例信息
         registry.register(info, "true".equals(isReplication));
         return Response.status(204).build();  // 204 to be backwards compatible
     }

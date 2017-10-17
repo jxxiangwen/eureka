@@ -30,6 +30,9 @@ class InstanceInfoReplicator implements Runnable {
     private final DiscoveryClient discoveryClient;
     private final InstanceInfo instanceInfo;
 
+    /**
+     * 定时执行频率，单位：秒
+     */
     private final int replicationIntervalSeconds;
     private final ScheduledExecutorService scheduler;
     private final AtomicReference<Future> scheduledPeriodicRef;
@@ -59,8 +62,10 @@ class InstanceInfoReplicator implements Runnable {
         logger.info("InstanceInfoReplicator onDemand update allowed rate per min is {}", allowedRatePerMinute);
     }
 
+    // 设置定期注册
     public void start(int initialDelayMs) {
         if (started.compareAndSet(false, true)) {
+            // 首次注册,设置为dirty
             instanceInfo.setIsDirty();  // for initial register
             Future next = scheduler.schedule(this, initialDelayMs, TimeUnit.SECONDS);
             scheduledPeriodicRef.set(next);
@@ -79,12 +84,14 @@ class InstanceInfoReplicator implements Runnable {
                 public void run() {
                     logger.debug("Executing on-demand update of local InstanceInfo");
 
+                    // 上次执行失败,取消任务
                     Future latestPeriodic = scheduledPeriodicRef.get();
                     if (latestPeriodic != null && !latestPeriodic.isDone()) {
                         logger.debug("Canceling the latest scheduled update, it will be rescheduled at the end of on demand update");
                         latestPeriodic.cancel(false);
                     }
 
+                    // 再次调用
                     InstanceInfoReplicator.this.run();
                 }
             });
@@ -97,17 +104,22 @@ class InstanceInfoReplicator implements Runnable {
 
     public void run() {
         try {
+            // 定时检查 InstanceInfo 的状态和属性是否发生变化
             discoveryClient.refreshInstanceInfo();
 
             Long dirtyTimestamp = instanceInfo.isDirtyWithTime();
             if (dirtyTimestamp != null) {
-                //注册
+                // 发起注册
                 discoveryClient.register();
+                // 设置 应用实例信息 数据一致
+                // 变为非dirty
                 instanceInfo.unsetIsDirty(dirtyTimestamp);
             }
         } catch (Throwable t) {
             logger.warn("There was a problem with the instance info replicator", t);
         } finally {
+            // 提交任务，并设置该任务的 Future
+            // 再次延迟执行任务，并设置 scheduledPeriodicRef。通过这样的方式，不断循环定时执行任务。
             Future next = scheduler.schedule(this, replicationIntervalSeconds, TimeUnit.SECONDS);
             scheduledPeriodicRef.set(next);
         }

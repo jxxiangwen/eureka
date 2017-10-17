@@ -97,6 +97,7 @@ public class PeerEurekaNodes {
 
                 }
             };
+            // 定时更新结点信息
             taskExecutor.scheduleWithFixedDelay(
                     peersUpdateTask,
                     serverConfig.getPeerEurekaNodesUpdateIntervalMs(),
