@@ -1113,6 +1113,7 @@ public class DiscoveryClient implements EurekaClient {
      * @return the client response
      * @throws Throwable on error
      */
+    // 增量获取
     private void getAndUpdateDelta(Applications applications) throws Throwable {
         long currentUpdateGeneration = fetchRegistryGeneration.get();
 
@@ -1122,6 +1123,7 @@ public class DiscoveryClient implements EurekaClient {
             delta = httpResponse.getEntity();
         }
 
+        // 增量获取为空，全量获取
         if (delta == null) {
             logger.warn("The server does not allow the delta revision to be applied because it is not safe. "
                     + "Hence got the full registry.");
@@ -1131,7 +1133,9 @@ public class DiscoveryClient implements EurekaClient {
             String reconcileHashCode = "";
             if (fetchRegistryUpdateLock.tryLock()) {
                 try {
+                    // 将变化的应用集合和本地缓存的应用集合进行合并
                     updateDelta(delta);
+                    // 计算本地的应用集合一致性哈希码
                     reconcileHashCode = getReconcileHashCode(applications);
                 } finally {
                     fetchRegistryUpdateLock.unlock();
@@ -1140,7 +1144,10 @@ public class DiscoveryClient implements EurekaClient {
                 logger.warn("Cannot acquire update lock, aborting getAndUpdateDelta");
             }
             // There is a diff in number of instances for some reason
+            // 配置 eureka.printDeltaFullDiff ，是否打印增量和全量差异。默认值 ：false 。
+            // 从目前代码实现上来看，暂时没有生效。开启该参数会导致每次增量获取后又发起全量获取，不要开启。
             if (!reconcileHashCode.equals(delta.getAppsHashCode()) || clientConfig.shouldLogDeltaDiff()) {
+                // hash 对比失败,全量获取
                 reconcileAndLogDifference(delta, reconcileHashCode);  // this makes a remoteCall
             }
         } else {
@@ -1215,10 +1222,12 @@ public class DiscoveryClient implements EurekaClient {
      * @param delta the delta information received from eureka server in the last
      *              poll cycle.
      */
+    // 增量更新,将变化的应用集合和本地缓存的应用集合进行合并。
     private void updateDelta(Applications delta) {
         int deltaCount = 0;
         for (Application app : delta.getRegisteredApplications()) {
             for (InstanceInfo instance : app.getInstances()) {
+                // aws
                 Applications applications = getApplications();
                 String instanceRegion = instanceRegionChecker.getInstanceRegion(instance);
                 if (!instanceRegionChecker.isLocalRegion(instanceRegion)) {
@@ -1231,6 +1240,7 @@ public class DiscoveryClient implements EurekaClient {
                 }
 
                 ++deltaCount;
+                // 添加和修改做的动作一样
                 if (ActionType.ADDED.equals(instance.getActionType())) {
                     Application existingApp = applications.getRegisteredApplications(instance.getAppName());
                     if (existingApp == null) {
@@ -1246,8 +1256,8 @@ public class DiscoveryClient implements EurekaClient {
                     logger.debug("Modified instance {} to the existing apps ", instance.getId());
 
                     applications.getRegisteredApplications(instance.getAppName()).addInstance(instance);
-
                 } else if (ActionType.DELETED.equals(instance.getActionType())) {
+                    // 删除
                     Application existingApp = applications.getRegisteredApplications(instance.getAppName());
                     if (existingApp == null) {
                         applications.addApplication(app);
@@ -1260,6 +1270,9 @@ public class DiscoveryClient implements EurekaClient {
         logger.debug("The total number of instances fetched by the delta processor : {}", deltaCount);
 
         getApplications().setVersion(delta.getVersion());
+        // 过滤、打乱应用集合
+        // 根据配置 eureka.shouldFilterOnlyUpInstances = true ( 默认值 ：true )
+        // 过滤只保留状态为开启( UP )的应用实例，并随机打乱应用实例顺序。打乱后，实现调用应用服务的随机性。
         getApplications().shuffleInstances(clientConfig.shouldFilterOnlyUpInstances());
 
         for (Applications applications : remoteRegionVsApps.values()) {
@@ -1520,6 +1533,7 @@ public class DiscoveryClient implements EurekaClient {
                 }
             }
 
+            // 获取
             boolean success = fetchRegistry(remoteRegionsModified);
             if (success) {
                 // 设置 注册信息的应用实例数

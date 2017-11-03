@@ -136,6 +136,9 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
         this.numberOfReplicationsLastMin = new MeasuredRate(1000 * 60 * 1);
         // We first check if the instance is STARTING or DOWN, then we check explicit overrides,
         // then we check the status of a potentially existing lease.
+        // 1. DownOrStartingRule: down,starting或者unknown状态,直接返回instance里面的状态
+        // 2. OverrideExistsRule: 如果overriddenInstanceStatusMap存在,返回
+        // 3. LeaseExistsRule: 如果租约状态为OUT_OF_SERVICE或者up,发挥
         this.instanceStatusOverrideRule = new FirstMatchWinsCompositeRule(new DownOrStartingRule(),
                 new OverrideExistsRule(overriddenInstanceStatusMap), new LeaseExistsRule());
     }

@@ -138,6 +138,17 @@ public class InstanceInfo {
     private volatile DataCenterInfo dataCenterInfo;
     private volatile String hostName;
     private volatile InstanceStatus status = InstanceStatus.UP;
+    /**
+     * 覆盖状态
+     * 调用 Eureka-Server HTTP Restful 接口 apps/${APP_NAME}/${INSTANCE_ID}/status
+     * 对应用实例覆盖状态的变更，从而达到主动的、强制的变更应用实例状态。
+     * 实际不会真的修改 Eureka-Client 应用实例的状态，而是修改在 Eureka-Server 注册的应用实例的状态。
+     * <p>
+     * 通过这样的方式，Eureka-Client 在获取到注册信息时，
+     * 并且配置 eureka.shouldFilterOnlyUpInstances = true，
+     * 过滤掉非 InstanceStatus.UP 的应用实例，从而避免调动该实例，
+     * 以达到应用实例的暂停服务( InstanceStatus.OUT_OF_SERVICE )，而无需关闭应用实例。
+     */
     private volatile InstanceStatus overriddenstatus = InstanceStatus.UNKNOWN;
     @XStreamOmitField
     private volatile boolean isInstanceInfoDirty = false;

@@ -63,7 +63,7 @@ public class DiscoveryClientRegisterUpdateTest {
         // give some execution time for the initial registration to process
         expectStatus(InstanceInfo.InstanceStatus.STARTING, 4000, TimeUnit.MILLISECONDS);
         mockLocalEurekaServer.registrationStatuses.clear();  // and then clear the validation list
-        mockLocalEurekaServer.registerCount.set(0l);
+        mockLocalEurekaServer.registerCount.set(0L);
     }
 
     @After

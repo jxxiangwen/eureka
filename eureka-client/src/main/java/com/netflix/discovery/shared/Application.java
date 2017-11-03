@@ -104,10 +104,12 @@ public class Application {
      *            the instance info object to be added.
      */
     public void addInstance(InstanceInfo i) {
+        // 添加到 应用实例映射
         instancesMap.put(i.getId(), i);
         synchronized (instances) {
             instances.remove(i);
             instances.add(i);
+            // 设置 isDirty ，目前只用于 `#toString()` 方法打印，无业务逻辑
             isDirty = true;
         }
     }

@@ -137,6 +137,8 @@ public class ResponseCacheImpl implements ResponseCache {
         // 读写缓存是容量最大1000
         this.readWriteCacheMap =
                 CacheBuilder.newBuilder().initialCapacity(1000)
+                        // 读写缓存( readWriteCacheMap ) 写入后，一段时间自动过期，
+                        // 配置 eureka.responseCacheAutoExpirationInSeconds ，设置写入过期时长。默认值 ：180 秒。
                         .expireAfterWrite(serverConfig.getResponseCacheAutoExpirationInSeconds(), TimeUnit.SECONDS)
                         .removalListener(new RemovalListener<Key, Value>() {
                             @Override
@@ -162,6 +164,7 @@ public class ResponseCacheImpl implements ResponseCache {
 
         if (shouldUseReadOnlyResponseCache) {
             // 使用只读缓存需要定期根据读写缓存刷新只读缓存
+            // 配置 eureka.responseCacheUpdateIntervalMs，设置任务执行频率，默认值 ：30 * 1000 毫秒。
             timer.schedule(getCacheUpdateTask(),
                     new Date(((System.currentTimeMillis() / responseCacheUpdateIntervalMs) * responseCacheUpdateIntervalMs)
                             + responseCacheUpdateIntervalMs),
@@ -175,6 +178,10 @@ public class ResponseCacheImpl implements ResponseCache {
         }
     }
 
+    /**
+     * 定时任务更新缓存
+     * @return
+     */
     private TimerTask getCacheUpdateTask() {
         // 根据读写缓存刷新只读缓存
         return new TimerTask() {
@@ -253,6 +260,7 @@ public class ResponseCacheImpl implements ResponseCache {
      *
      * @param appName the application name of the application.
      */
+    // 过期应用的缓存
     @Override
     public void invalidate(String appName, @Nullable String vipAddress, @Nullable String secureVipAddress) {
         for (Key.KeyType type : Key.KeyType.values()) {
@@ -285,6 +293,7 @@ public class ResponseCacheImpl implements ResponseCache {
             logger.debug("Invalidating the response cache key : {} {} {} {}, {}",
                     key.getEntityType(), key.getName(), key.getVersion(), key.getType(), key.getEurekaAccept());
 
+            // 过期读写缓存
             readWriteCacheMap.invalidate(key);
             Collection<Key> keysWithRegions = regionSpecificKeys.get(key);
             if (null != keysWithRegions && !keysWithRegions.isEmpty()) {
@@ -379,9 +388,11 @@ public class ResponseCacheImpl implements ResponseCache {
      * Generate pay load with both JSON and XML formats for all applications.
      */
     private String getPayLoad(Key key, Applications apps) {
+        // 获得编码器
         EncoderWrapper encoderWrapper = serverCodecs.getEncoder(key.getType(), key.getEurekaAccept());
         String result;
         try {
+            // 编码
             result = encoderWrapper.encode(apps);
         } catch (Exception e) {
             logger.error("Failed to encode the payload for all apps", e);
@@ -428,6 +439,7 @@ public class ResponseCacheImpl implements ResponseCache {
                             payload = getPayLoad(key, registry.getApplicationsFromMultipleRegions(key.getRegions()));
                         } else {
                             tracer = serializeAllAppsTimer.start();
+                            // 这个
                             payload = getPayLoad(key, registry.getApplications());
                         }
                         // 增量获取

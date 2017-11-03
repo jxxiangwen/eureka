@@ -30,9 +30,11 @@ public interface InstanceRegistry extends LeaseManager<InstanceInfo>, LookupServ
     //  应用实例状态变更相关
     void storeOverriddenStatusIfRequired(String appName, String id, InstanceStatus overriddenStatus);
 
+    // 更新覆盖状态
     boolean statusUpdate(String appName, String id, InstanceStatus newStatus,
                          String lastDirtyTimestamp, boolean isReplication);
 
+    // 覆盖状态删除
     boolean deleteStatusOverride(String appName, String id, InstanceStatus newStatus,
                                  String lastDirtyTimestamp, boolean isReplication);
 

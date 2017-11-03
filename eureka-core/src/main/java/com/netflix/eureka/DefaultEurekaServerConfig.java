@@ -659,7 +659,7 @@ public class DefaultEurekaServerConfig implements EurekaServerConfig {
     @Override
     public long getRoute53DomainTTL() {
         return configInstance.getLongProperty(
-                namespace + "route53DomainTTL", 30l)
+                namespace + "route53DomainTTL", 30L)
                 .get();
     }
 

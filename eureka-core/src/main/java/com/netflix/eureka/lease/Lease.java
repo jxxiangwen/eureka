@@ -109,7 +109,7 @@ public class Lease<T> {
      * Checks if the lease of a given {@link com.netflix.appinfo.InstanceInfo} has expired or not.
      */
     public boolean isExpired() {
-        return isExpired(0l);
+        return isExpired(0L);
     }
 
     /**

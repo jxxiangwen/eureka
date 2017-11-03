@@ -126,7 +126,7 @@ public class InstanceRegistryTest extends AbstractTester {
     @Test
     public void testStatusOverrideSetAndRemoval() throws Exception {
         InstanceInfo seed = createLocalInstance(LOCAL_REGION_INSTANCE_1_HOSTNAME);
-        seed.setLastDirtyTimestamp(100l);
+        seed.setLastDirtyTimestamp(100L);
 
         // Regular registration first
         InstanceInfo myInstance1 = new InstanceInfo(seed);
@@ -140,7 +140,7 @@ public class InstanceRegistryTest extends AbstractTester {
 
         // Register again with status UP to verify that the override is still in place even if the dirtytimestamp is higher
         InstanceInfo myInstance2 = new InstanceInfo(seed);  // clone to avoid object state in this test
-        myInstance2.setLastDirtyTimestamp(200l);  // use a later 'client side' dirty timestamp
+        myInstance2.setLastDirtyTimestamp(200L);  // use a later 'client side' dirty timestamp
         registry.register(myInstance2, 10000000, false);
         verifyLocalInstanceStatus(seed.getId(), InstanceStatus.OUT_OF_SERVICE);
 
@@ -151,7 +151,7 @@ public class InstanceRegistryTest extends AbstractTester {
 
         // Register again with status UP after the override deletion, keeping myInstance2's dirtyTimestamp (== no client side change)
         InstanceInfo myInstance3 = new InstanceInfo(seed);  // clone to avoid object state in this test
-        myInstance3.setLastDirtyTimestamp(200l);  // use a later 'client side' dirty timestamp
+        myInstance3.setLastDirtyTimestamp(200L);  // use a later 'client side' dirty timestamp
         registry.register(myInstance3, 10000000, false);
         verifyLocalInstanceStatus(seed.getId(), InstanceStatus.UP);
     }
@@ -159,7 +159,7 @@ public class InstanceRegistryTest extends AbstractTester {
     @Test
     public void testStatusOverrideWithRenewAppliedToAReplica() throws Exception {
         InstanceInfo seed = createLocalInstance(LOCAL_REGION_INSTANCE_1_HOSTNAME);
-        seed.setLastDirtyTimestamp(100l);
+        seed.setLastDirtyTimestamp(100L);
 
         // Regular registration first
         InstanceInfo myInstance1 = new InstanceInfo(seed);
@@ -189,7 +189,7 @@ public class InstanceRegistryTest extends AbstractTester {
 
         // Register again with status UP after the override deletion, keeping myInstance2's dirtyTimestamp (== no client side change)
         InstanceInfo myInstance3 = new InstanceInfo(seed);  // clone to avoid object state in this test
-        myInstance3.setLastDirtyTimestamp(200l);  // use a later 'client side' dirty timestamp
+        myInstance3.setLastDirtyTimestamp(200L);  // use a later 'client side' dirty timestamp
         registry.register(myInstance3, 10000000, false);
         verifyLocalInstanceStatus(seed.getId(), InstanceStatus.UP);
     }
@@ -260,12 +260,12 @@ public class InstanceRegistryTest extends AbstractTester {
         when(testTask.getCurrentTimeNano())
                 .thenReturn(1l)  // less than the period
                 .thenReturn(1l + evictionTaskPeriodNanos)  // exactly 1 period
-                .thenReturn(1l + evictionTaskPeriodNanos*2 + 10000000l)  // 10ms longer than 1 period
+                .thenReturn(1l + evictionTaskPeriodNanos*2 + 10000000L)  // 10ms longer than 1 period
                 .thenReturn(1l + evictionTaskPeriodNanos*3 - 1l);  // less than 1 period
 
-        assertThat(testTask.getCompensationTimeMs(), is(0l));
-        assertThat(testTask.getCompensationTimeMs(), is(0l));
-        assertThat(testTask.getCompensationTimeMs(), is(10l));
-        assertThat(testTask.getCompensationTimeMs(), is(0l));
+        assertThat(testTask.getCompensationTimeMs(), is(0L));
+        assertThat(testTask.getCompensationTimeMs(), is(0L));
+        assertThat(testTask.getCompensationTimeMs(), is(10L));
+        assertThat(testTask.getCompensationTimeMs(), is(0L));
     }
 }

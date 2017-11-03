@@ -200,8 +200,10 @@ public class ApplicationsResource {
 
         boolean isRemoteRegionRequested = null != regionsStr && !regionsStr.isEmpty();
 
+        // 判断是否可以访问
         // If the delta flag is disabled in discovery or if the lease expiration
         // has been disabled, redirect clients to get all instances
+        // 是否禁用增量访问
         if ((serverConfig.shouldDisableDelta()) || (!registry.shouldAllowAccess(isRemoteRegionRequested))) {
             return Response.status(Status.FORBIDDEN).build();
         }
@@ -215,6 +217,7 @@ public class ApplicationsResource {
             EurekaMonitors.GET_ALL_DELTA_WITH_REMOTE_REGIONS.increment();
         }
 
+        // 返回数据格式
         CurrentRequestVersion.set(Version.toEnum(version));
         KeyType keyType = Key.KeyType.JSON;
         String returnMediaType = MediaType.APPLICATION_JSON;
@@ -223,11 +226,13 @@ public class ApplicationsResource {
             returnMediaType = MediaType.APPLICATION_XML;
         }
 
+        // 响应缓存键( KEY )
         Key cacheKey = new Key(Key.EntityType.Application,
                 ResponseCacheImpl.ALL_APPS_DELTA,
                 keyType, CurrentRequestVersion.get(), EurekaAccept.fromString(eurekaAccept), regions
         );
 
+        // 响应缓存结果
         if (acceptEncoding != null
                 && acceptEncoding.contains(HEADER_GZIP_VALUE)) {
             return Response.ok(responseCache.getGZIP(cacheKey))

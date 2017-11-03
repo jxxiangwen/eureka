@@ -12,11 +12,19 @@ import java.util.List;
  *
  * Created by Nikos Michalakis on 7/13/16.
  */
+// 复合规则，以第一个匹配成功为准
 public class FirstMatchWinsCompositeRule implements InstanceStatusOverrideRule {
 
+    /**
+     * 复合规则集合
+     */
     private final InstanceStatusOverrideRule[] rules;
+    /**
+     * 默认规则
+     */
     private final InstanceStatusOverrideRule defaultRule;
     private final String compositeRuleName;
+
 
     public FirstMatchWinsCompositeRule(InstanceStatusOverrideRule... rules) {
         this.rules = rules;

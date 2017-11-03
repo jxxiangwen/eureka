@@ -3,6 +3,7 @@ package com.netflix.eureka.util.batcher;
 /**
  * @author Tomasz Bak
  */
+// 任务持有者
 class TaskHolder<ID, T> {
 
     private final ID id;

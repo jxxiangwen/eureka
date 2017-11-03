@@ -239,8 +239,10 @@ public class Applications {
      * @return the internal hash code representation indicating the information
      *         about the instances.
      */
+    // appsHashCode = ${status}_${count}_
     @JsonIgnore
     public String getReconcileHashCode() {
+        // key = {status} value = {count}
         TreeMap<String, AtomicInteger> instanceCountMap = new TreeMap<String, AtomicInteger>();
         populateInstanceCountMap(instanceCountMap);
         return getReconcileHashCode(instanceCountMap);

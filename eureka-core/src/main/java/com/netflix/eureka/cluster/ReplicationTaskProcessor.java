@@ -18,6 +18,7 @@ import static com.netflix.eureka.cluster.protocol.ReplicationInstance.Replicatio
 
 /**
  * @author Tomasz Bak
+ * 实现 TaskDispatcher ，Eureka-Server 集群任务处理器。
  */
 class ReplicationTaskProcessor implements TaskProcessor<ReplicationTask> {
 
@@ -156,8 +157,7 @@ class ReplicationTaskProcessor implements TaskProcessor<ReplicationTask> {
      * Check if the exception is some sort of network timeout exception (ie)
      * read,connect.
      *
-     * @param e
-     *            The exception for which the information needs to be found.
+     * @param e The exception for which the information needs to be found.
      * @return true, if it is a network timeout, false otherwise.
      */
     private static boolean isNetworkConnectException(Throwable e) {

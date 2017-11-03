@@ -13,6 +13,7 @@ import com.netflix.eureka.registry.AbstractInstanceRegistry;
  *
  * Created by Nikos Michalakis on 7/13/16.
  */
+// 应用实例状态覆盖规则接口
 public interface InstanceStatusOverrideRule {
 
     /**

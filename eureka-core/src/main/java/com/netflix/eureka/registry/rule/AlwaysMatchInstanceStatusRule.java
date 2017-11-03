@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 public class AlwaysMatchInstanceStatusRule implements InstanceStatusOverrideRule {
     private static final Logger logger = LoggerFactory.getLogger(AlwaysMatchInstanceStatusRule.class);
 
+    // 总是返回instanceInfo的状态,默认rule
     @Override
     public StatusOverrideResult apply(InstanceInfo instanceInfo,
                                       Lease<InstanceInfo> existingLease,

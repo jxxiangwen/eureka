@@ -53,7 +53,13 @@ class AcceptorExecutor<ID, T> {
 
     private final AtomicBoolean isShutdown = new AtomicBoolean(false);
 
+    /**
+     * 接收队列
+     */
     private final BlockingQueue<TaskHolder<ID, T>> acceptorQueue = new LinkedBlockingQueue<>();
+    /**
+     * 再执行队列
+     */
     private final BlockingDeque<TaskHolder<ID, T>> reprocessQueue = new LinkedBlockingDeque<>();
     private final Thread acceptorThread;
 

@@ -16,6 +16,7 @@ public class OverrideExistsRule implements InstanceStatusOverrideRule {
 
     private static final Logger logger = LoggerFactory.getLogger(OverrideExistsRule.class);
 
+    // 使用的是PeerAwareInstanceRegistryImpl的overriddenInstanceStatusMap
     private Map<String, InstanceInfo.InstanceStatus> statusOverrides;
 
     public OverrideExistsRule(Map<String, InstanceInfo.InstanceStatus> statusOverrides) {
