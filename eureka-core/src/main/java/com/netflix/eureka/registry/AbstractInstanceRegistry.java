@@ -311,6 +311,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             recentlyChangedQueue.add(new RecentlyChangedItem(lease));
             // 设置租约的最后更新时间戳
             registrant.setLastUpdatedTimestamp();
+            
             // 缓存失效
             invalidateCache(registrant.getAppName(), registrant.getVIPAddress(), registrant.getSecureVipAddress());
             logger.info("Registered instance {}/{} with status {} (replication={})",
